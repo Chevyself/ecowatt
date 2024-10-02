@@ -22,6 +22,8 @@ jobs:
 
       - name: Build
         run: npm run build
+        env:
+          BASE_PATH: '/${{ github.event.repository.name }}'
 
       - name: Deploy
         uses: peaceiris/actions-gh-pages@v3
