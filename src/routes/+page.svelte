@@ -50,6 +50,9 @@
 	let currentTime: number = new Date().setMinutes(0);
 	let consumptionChart: Chart | null = null;
 	let mounted = false;
+	let socket: WebSocket | null;
+
+
 
 	interface ConsumptionStat {
 		timestamp: number;
@@ -273,6 +276,23 @@
 	onMount(() => {
 		mounted = true;
 		updateChart();
+                socket = new WebSocket('ws://localhost:8000/sv');
+
+		let playing = false;
+		socket.onopen = () => {
+	  		console.log("Socket connected!");
+	  		setInterval(() => {
+				playing = !playing;
+				if (playing) {
+					socket.send("Play");
+				} else {
+					socket.send("Pause");
+	    			}
+	  		}, 1000);
+		}
+		socket.onerror = (event: Event) => {
+			console.log("WebSocket error:", event);	
+		};
 	});
 </script>
 <style>
