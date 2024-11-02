@@ -1,42 +1,3 @@
-<div class="devices mt-3">
-	{#each devices as device}
-		<button on:click={() => addDevice(device)} class="device device-button"
-			><i class="fa-solid fa-{device.icon}"></i></button
-		>
-	{/each}
-</div>
-<div class="container" style="height: 80vh">
-	<div
-		class="row d-flex justify-content-between align-items-center position-relative"
-		style="height: 100%"
-	>
-		<div id="house" class="ui-elem col-lg-5 col-12">
-			{#each currentDevices as device}
-				<DeviceComponent {device} />
-			{/each}
-		</div>
-		<div class="connection-line d-none d-lg-block">
-			{#if totalKwBeingConsumed > 0}
-				<div class="energy-ball" style="animation-duration: 1s;"></div>
-			{/if}
-		</div>
-		<div id="app" class="ui-elem col-lg-5 col-12">
-			<div class="power-consumption">
-				<h2>Smart House</h2>
-
-        <div class="time-selector">
-          <button class="time-button {selectedTimeframe === 'This Hour' ? 'active' : ''}" on:click={() => setTimeframe('This Hour')}>Hourly</button>
-          <button class="time-button {selectedTimeframe === 'Today' ? 'active' : ''}" on:click={() => setTimeframe('Today')}>Daily</button>
-          <button class="time-button {selectedTimeframe === 'This Month' ? 'active' : ''}" on:click={() => setTimeframe('This Month')}>Monthly</button>
-          <button class="time-button {selectedTimeframe === 'This Year' ? 'active' : ''}" on:click={() => setTimeframe('This Year')}>Yearly</button>
-        </div>
-
-				<canvas id="consumptionChart"></canvas>
-			</div>
-		</div>
-	</div>
-</div>
-
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import type { HomeDevice } from '$lib/types/HomeDevice';
@@ -61,7 +22,7 @@
 
 	// Stats
   // hourly has stats for every 10 minutes
-	let thisHourConsumption: ConsumptionStat[] = [];
+  let thisHourConsumption: ConsumptionStat[] = [];
 	// daily has stats for every hour
   let todayConsumption: ConsumptionStat[] = [];
 	// monthly has stats for every day
@@ -276,25 +237,79 @@
 	onMount(() => {
 		mounted = true;
 		updateChart();
-                socket = new WebSocket('ws://localhost:8000/sv');
+                socket = new WebSocket('ws://localhost:8080/sv');
 
-		let playing = false;
 		socket.onopen = () => {
-	  		console.log("Socket connected!");
-	  		setInterval(() => {
-				playing = !playing;
-				if (playing) {
-					socket.send("Play");
-				} else {
-					socket.send("Pause");
-	    			}
-	  		}, 1000);
+			// Energy consumed map 0 -> 0 to a max of 1000 when reached in this hour consumtion a total of 1 k/wh
+			
+			setInterval(() => {
+				const latestThisHour = thisHourConsumption[thisHourConsumption.length - 1];
+				// console.log(latestThisHour);
+				// console.log(thisHourConsumption)
+				if (!latestThisHour || !socket) return;
+				let energy = latestThisHour.consumption * 100;
+				console.log("Sending energy event with value: " + energy);
+				console.log(socket)
+				socket.send("e: " + energy);
+			}, 100);
 		}
 		socket.onerror = (event: Event) => {
-			console.log("WebSocket error:", event);	
+			// console.log("WebSocket error:", event);	
 		};
 	});
 </script>
+
+<div class="devices mt-3">
+	{#each devices as device}
+		<button on:click={() => addDevice(device)} class="device device-button"
+			><i class="fa-solid fa-{device.icon}"></i></button
+		>
+	{/each}
+</div>
+<div class="container" style="height: 80vh">
+	<div
+		class="row d-flex justify-content-between align-items-center position-relative"
+		style="height: 100%"
+	>
+		<div id="house" class="ui-elem col-lg-5 col-12">
+			{#each currentDevices as device}
+				<DeviceComponent {device} />
+			{/each}
+		</div>
+		<div class="connection-line d-none d-lg-block">
+			{#if totalKwBeingConsumed > 0}
+				<div class="energy-ball" style="animation-duration: 1s;"></div>
+			{/if}
+		</div>
+		<div id="app" class="ui-elem col-lg-5 col-12">
+			<div class="power-consumption">
+				<h2>Smart House</h2>
+
+				<div class="time-selector">
+					<button
+						class="time-button {selectedTimeframe === 'This Hour' ? 'active' : ''}"
+						on:click={() => setTimeframe('This Hour')}>Hourly</button
+					>
+					<button
+						class="time-button {selectedTimeframe === 'Today' ? 'active' : ''}"
+						on:click={() => setTimeframe('Today')}>Daily</button
+					>
+					<button
+						class="time-button {selectedTimeframe === 'This Month' ? 'active' : ''}"
+						on:click={() => setTimeframe('This Month')}>Monthly</button
+					>
+					<button
+						class="time-button {selectedTimeframe === 'This Year' ? 'active' : ''}"
+						on:click={() => setTimeframe('This Year')}>Yearly</button
+					>
+				</div>
+
+				<canvas id="consumptionChart"></canvas>
+			</div>
+		</div>
+	</div>
+</div>
+
 <style>
 	/* Add a pretty border to ui elements rounded in all sides white */
 	.ui-elem {
